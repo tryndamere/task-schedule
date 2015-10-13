@@ -14,6 +14,8 @@ public class ZookeeperProperties {
 
     private int sessionTimeoutMs;
 
+    private boolean isBlockUntilConnectedOrTimedOut = true;
+
     public int getConnectionTimeoutMs() {
         return connectionTimeoutMs;
     }
