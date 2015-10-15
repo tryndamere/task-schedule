@@ -16,6 +16,16 @@ public class ZookeeperProperties {
 
     private boolean isBlockUntilConnectedOrTimedOut = true;
 
+
+
+    public boolean isBlockUntilConnectedOrTimedOut() {
+        return isBlockUntilConnectedOrTimedOut;
+    }
+
+    public void setIsBlockUntilConnectedOrTimedOut(boolean isBlockUntilConnectedOrTimedOut) {
+        this.isBlockUntilConnectedOrTimedOut = isBlockUntilConnectedOrTimedOut;
+    }
+
     public int getConnectionTimeoutMs() {
         return connectionTimeoutMs;
     }
