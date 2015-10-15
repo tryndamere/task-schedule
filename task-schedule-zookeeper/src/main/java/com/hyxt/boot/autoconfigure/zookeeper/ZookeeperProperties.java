@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Created by rocky on 2015/10/12.
  */
-@ConfigurationProperties(prefix = "spring.zookeeper")
+@ConfigurationProperties(prefix = "hyxt.zookeeper")
 public class ZookeeperProperties {
 
     private String connectionString;
@@ -16,7 +16,9 @@ public class ZookeeperProperties {
 
     private boolean isBlockUntilConnectedOrTimedOut = true;
 
+    private int baseSleepTimeMs = 3000;
 
+    private int maxSleepTimeMs = Integer.MAX_VALUE;
 
     public boolean isBlockUntilConnectedOrTimedOut() {
         return isBlockUntilConnectedOrTimedOut;
@@ -24,6 +26,22 @@ public class ZookeeperProperties {
 
     public void setIsBlockUntilConnectedOrTimedOut(boolean isBlockUntilConnectedOrTimedOut) {
         this.isBlockUntilConnectedOrTimedOut = isBlockUntilConnectedOrTimedOut;
+    }
+
+    public int getBaseSleepTimeMs() {
+        return baseSleepTimeMs;
+    }
+
+    public void setBaseSleepTimeMs(int baseSleepTimeMs) {
+        this.baseSleepTimeMs = baseSleepTimeMs;
+    }
+
+    public int getMaxSleepTimeMs() {
+        return maxSleepTimeMs;
+    }
+
+    public void setMaxSleepTimeMs(int maxSleepTimeMs) {
+        this.maxSleepTimeMs = maxSleepTimeMs;
     }
 
     public int getConnectionTimeoutMs() {
