@@ -1,8 +1,15 @@
 package com.hyxt.boot.autoconfigure.zookeeper;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hyxt.boot.autoconfigure.ZookeeperConstants;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.BoundedExponentialBackoffRetry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -10,12 +17,36 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @EnableConfigurationProperties(ZookeeperProperties.class)
-@ConditionalOnProperty(prefix = "hyxt.zookeeper", name = "connectionString" , matchIfMissing = false)
+@ConditionalOnProperty(prefix = "hyxt.zookeeper", name = "connectionString" ,  matchIfMissing = false)
 public class ZookeeperAutoConfiguration {
 
-    @Autowired
-    private ZookeeperProperties zookeeperProperties;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperAutoConfiguration.class);
 
+    @Bean
+    @ConditionalOnClass({CuratorFramework.class , CuratorFrameworkFactory.class})
+    public CuratorFramework createCuratorFramework(ZookeeperProperties zookeeperProperties) throws InterruptedException {
+        LOGGER.info("curator init paramters , connectString : {} , connectionTimeout : {} , sessionTimeout : {}", zookeeperProperties.getConnectionString()
+                , zookeeperProperties.getConnectionTimeoutMs(), zookeeperProperties.getSessionTimeoutMs());
+
+        BoundedExponentialBackoffRetry boundedExponentialBackoffRetry = new BoundedExponentialBackoffRetry(zookeeperProperties.getBaseSleepTimeMs(),
+                zookeeperProperties.getMaxSleepTimeMs(), zookeeperProperties.getMaxRetryCount());
+
+        CuratorFramework curatorFramework = CuratorFrameworkFactory.builder().connectString(zookeeperProperties.getConnectionString())
+                .namespace(ZookeeperConstants.ZK_NAMESPACE)
+                .sessionTimeoutMs(zookeeperProperties.getSessionTimeoutMs())
+                .connectionTimeoutMs(zookeeperProperties.getConnectionTimeoutMs())
+                .retryPolicy(boundedExponentialBackoffRetry)
+                .maxCloseWaitMs(zookeeperProperties.getMaxCloseWaitMs())
+                .build();
+        curatorFramework.start();
+
+        if (zookeeperProperties.isBlockUntilConnectedOrTimedOut()) {
+            curatorFramework.blockUntilConnected();
+        }
+
+        LOGGER.info("curatorFramework is started successful");
+        return curatorFramework;
+    }
 
 
 }

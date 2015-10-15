@@ -10,15 +10,35 @@ public class ZookeeperProperties {
 
     private String connectionString;
 
-    private int connectionTimeoutMs;
+    private int connectionTimeoutMs = 60 * 1000;
 
-    private int sessionTimeoutMs;
+    private int sessionTimeoutMs = 5 * connectionTimeoutMs;
 
     private boolean isBlockUntilConnectedOrTimedOut = true;
 
     private int baseSleepTimeMs = 3000;
 
     private int maxSleepTimeMs = Integer.MAX_VALUE;
+
+    private int maxRetryCount = 29;
+
+    private int maxCloseWaitMs = 15000;
+
+    public int getMaxCloseWaitMs() {
+        return maxCloseWaitMs;
+    }
+
+    public void setMaxCloseWaitMs(int maxCloseWaitMs) {
+        this.maxCloseWaitMs = maxCloseWaitMs;
+    }
+
+    public int getMaxRetryCount() {
+        return maxRetryCount;
+    }
+
+    public void setMaxRetryCount(int maxRetryCount) {
+        this.maxRetryCount = maxRetryCount;
+    }
 
     public boolean isBlockUntilConnectedOrTimedOut() {
         return isBlockUntilConnectedOrTimedOut;
