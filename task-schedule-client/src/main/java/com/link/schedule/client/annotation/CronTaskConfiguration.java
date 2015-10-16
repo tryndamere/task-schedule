@@ -3,7 +3,7 @@ package com.link.schedule.client.annotation;
 /**
  * Created by rocky on 2015/10/15.
  */
-public class TaskConfig {
+public class CronTaskConfiguration {
 
     private String owner;
 
@@ -18,10 +18,6 @@ public class TaskConfig {
     private boolean isConcurrent;
 
     private String host;
-
-    private String methodName;
-
-    private String className;
 
     public String getOwner() {
         return owner;
@@ -79,19 +75,4 @@ public class TaskConfig {
         this.host = host;
     }
 
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
 }
