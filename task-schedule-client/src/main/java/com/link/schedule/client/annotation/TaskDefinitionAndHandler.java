@@ -1,9 +1,5 @@
 package com.link.schedule.client.annotation;
 
-import org.springframework.beans.factory.annotation.Required;
-import org.springframework.context.annotation.Import;
-import org.springframework.scheduling.annotation.Schedules;
-
 import java.lang.annotation.*;
 
 /**
@@ -12,35 +8,21 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
-public @interface TaskAutoConfiguration {
+public @interface TaskDefinitionAndHandler {
 
     /**
-     * this key must be unique in the project
-     * eg: beanId
+     * job的唯一key，在项目中是不能重复。必须唯一
+     *
      * @return key
      */
     String key();
 
     /**
-     * The task description
+     * 任务描述
      *
      * @return
      */
     String desc() default "";
-
-    /**
-     * The code owner
-     *
-     * @return
-     */
-    String owner() default "";
-
-    /**
-     * The project name
-     *
-     * @return
-     */
-    String application() default "";
 
     /**
      * quartz cron express

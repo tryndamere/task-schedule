@@ -14,6 +14,13 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.util.StringValueResolver;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Created by rocky on 2015/10/16.
  */
@@ -21,11 +28,16 @@ public class TaskAnnotationBeanPostProcessor implements BeanPostProcessor, Order
         EmbeddedValueResolverAware, BeanFactoryAware, ApplicationContextAware,
         SmartInitializingSingleton, ApplicationListener<ContextRefreshedEvent>, DisposableBean {
 
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
+
     private ApplicationContext applicationContext;
 
     private BeanFactory beanFactory;
 
     private StringValueResolver resolver;
+
+    private final Set<Class<?>> nonAnnotatedClasses =
+            Collections.newSetFromMap(new ConcurrentHashMap<Class<?>, Boolean>(64));
 
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;

@@ -1,9 +1,9 @@
-package com.link.schedule.client.annotation;
+package com.link.schedule.client.config;
 
 /**
- * Created by rocky on 2015/10/15.
+ * Created by rocky on 15/10/17.
  */
-public class CronTaskConfiguration {
+public class TaskRegisterProperties {
 
     private String owner;
 
@@ -74,5 +74,4 @@ public class CronTaskConfiguration {
     public void setHost(String host) {
         this.host = host;
     }
-
 }
