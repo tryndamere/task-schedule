@@ -6,13 +6,14 @@ import org.springframework.util.ReflectionUtils;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 
 /**
  * Created by rocky on 2015/10/19.
  */
-public class DefaultZookeeperSerializer<T> implements ZookeeperSerializer<T> {
+public class DefaultZookeeperSerializer implements ZookeeperSerializer {
 
     private Charset charset;
 
@@ -25,7 +26,7 @@ public class DefaultZookeeperSerializer<T> implements ZookeeperSerializer<T> {
         this.charset = charset;
     }
 
-    public byte[] serializer(final T t) throws SerializationException {
+    public <T> byte[] serializer(final T t) throws SerializationException {
         final StringBuilder stringBuilder = new StringBuilder(20);
         ReflectionUtils.doWithFields(t.getClass(), new ReflectionUtils.FieldCallback() {
             public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
@@ -42,15 +43,51 @@ public class DefaultZookeeperSerializer<T> implements ZookeeperSerializer<T> {
                 return false;
             }
         });
+        String encodeStr = stringBuilder.length() == 0 ? null : stringBuilder.deleteCharAt(stringBuilder.length()-1).toString();
+        if (encodeStr == null) {
+            return null;
+        }
+        return serializer(encodeStr);
+    }
+
+    public <T> T deserializer(byte[] data , Class<T> tClass) throws SerializationException {
+        String deserializer = deserializer(data);
+        if (deserializer != null) {
+            try {
+                T t = tClass.newInstance();
+                for (String keyAndValue : deserializer.split("\\&")) {
+                    String[] split = keyAndValue.split("\\=");
+                    String key = split[0];
+                    String value = split[1];
+                    Field field = ReflectionUtils.findField(tClass, key);
+                    ReflectionUtils.makeAccessible(field);
+                    field.set(t , value);
+                }
+                return t;
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+        }
+        return null;
+    }
+
+    public byte[] serializer(String string) throws SerializationException {
         try {
-            return stringBuilder.length() == 0 ? null : URLEncoder.encode(stringBuilder.deleteCharAt(stringBuilder.length()-1).toString() , this.charset.displayName()).getBytes(charset);
+            return string == null || "".equals(string) ? null : URLEncoder.encode(string , this.charset.displayName()).getBytes(charset);
         } catch (UnsupportedEncodingException e) {
             throw new SerializationException("serialization fail" , e);
         }
     }
 
-    public T deserializer(byte[] data) throws SerializationException {
-        return null;
+    public String deserializer(byte[] bytes) throws SerializationException {
+        try {
+            return bytes == null || bytes.length == 0 ? null : URLDecoder.decode(new String(bytes , this.charset.displayName()) , this.charset.displayName());
+        } catch (UnsupportedEncodingException e) {
+            throw new SerializationException("serialization fail" , e);
+        }
     }
 
     private boolean isSerializer(Field field) {

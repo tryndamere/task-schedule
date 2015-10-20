@@ -15,7 +15,8 @@ public class Test {
         System.out.println(sb.length());
 
         final TestBean testBean = new TestBean();
-        ReflectionUtils.doWithFields(testBean.getClass(), new ReflectionUtils.FieldCallback() {
+        String a = "20";
+        ReflectionUtils.doWithFields(a.getClass(), new ReflectionUtils.FieldCallback() {
             public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
                 ReflectionUtils.makeAccessible(field);
 //                System.out.println(field.get(testBean) + "===" + field.getGenericType().getTypeName());
