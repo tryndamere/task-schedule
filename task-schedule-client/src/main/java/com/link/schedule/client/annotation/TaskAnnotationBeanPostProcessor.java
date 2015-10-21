@@ -1,5 +1,6 @@
 package com.link.schedule.client.annotation;
 
+import com.link.schedule.client.config.TaskRegistrar;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -39,6 +40,8 @@ public class TaskAnnotationBeanPostProcessor implements BeanPostProcessor, Order
     private final Set<Class<?>> nonAnnotatedClasses =
             Collections.newSetFromMap(new ConcurrentHashMap<Class<?>, Boolean>(64));
 
+    private TaskRegistrar taskRegistrar = new TaskRegistrar();
+
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
         if (beanFactory == null) {
@@ -65,7 +68,7 @@ public class TaskAnnotationBeanPostProcessor implements BeanPostProcessor, Order
     }
 
     public void destroy() throws Exception {
-
+        this.taskRegistrar.destroy();
     }
 
     public void setEmbeddedValueResolver(StringValueResolver resolver) {
