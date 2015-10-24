@@ -32,10 +32,8 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
 
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-    @Value("${schedule.project.application}")
     private String application;
 
-    @Value("${schedule.project.owner}")
     private String owner;
 
     private List<CronExpressTask> cronExpressTasks;
@@ -48,12 +46,24 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
 
     private List<NodeCache> nodeCaches ;
 
+    public void setApplication(String application) {
+        this.application = application;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
     public void setZookeeperSerializer(ZookeeperSerializer zookeeperSerializer) {
         this.zookeeperSerializer = zookeeperSerializer;
     }
 
     public void setCuratorFramework(CuratorFramework curatorFramework) {
         this.curatorFramework = curatorFramework;
+    }
+
+    public CuratorFramework getCuratorFramework() {
+        return curatorFramework;
     }
 
     public void addCronExpressTask(CronExpressTask cronExpressTask) {
