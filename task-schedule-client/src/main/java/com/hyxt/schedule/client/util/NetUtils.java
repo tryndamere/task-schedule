@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.link.schedule.client.util;
+package com.hyxt.schedule.client.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
-import java.util.Map;
-import java.util.Random;
 import java.util.regex.Pattern;
 
 /**

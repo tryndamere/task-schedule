@@ -1,4 +1,4 @@
-package com.link.schedule.client.config;
+package com.hyxt.schedule.client.config;
 
 /**
  * Created by rocky on 2015/10/21.

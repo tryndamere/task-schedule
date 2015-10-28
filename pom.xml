@@ -12,6 +12,7 @@
         <module>task-schedule-zookeeper</module>
         <module>task-schedule-client</module>
         <module>task-schedule-web</module>
+        <module>task-schedule-test</module>
     </modules>
 
     <parent>

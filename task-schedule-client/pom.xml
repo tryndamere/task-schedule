@@ -23,6 +23,7 @@
             <groupId>com.hyxt</groupId>
             <artifactId>task-schedule-zookeeper</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

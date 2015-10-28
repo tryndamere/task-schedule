@@ -1,14 +1,11 @@
-package com.link.schedule.client.config;
+package com.hyxt.schedule.client.config;
 
 import com.hyxt.boot.autoconfigure.ZookeeperConstants;
-import com.link.schedule.client.serializer.ZookeeperSerializer;
-import com.link.schedule.client.support.TaskMethodRunnable;
+import com.hyxt.schedule.client.serializer.ZookeeperSerializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.*;
-import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
-import org.apache.curator.framework.recipes.leader.CancelLeadershipException;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.CreateMode;
@@ -17,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,16 +64,16 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
 
     public void addCronExpressTask(CronExpressTask cronExpressTask) {
         if (this.cronExpressTasks == null) {
-            this.cronExpressTasks = new ArrayList<CronExpressTask>(10);
+            this.cronExpressTasks = new ArrayList<CronExpressTask>(1);
         }
         this.cronExpressTasks.add(cronExpressTask);
     }
 
-    public void addTaskRunnable(TaskMethodRunnable taskMethodRunnable) {
+    public void addTaskRunnable(Runnable runnable , String key) {
         if (runnableMap == null) {
            this.runnableMap = new ConcurrentHashMap<String, Runnable>(10);
         }
-        this.runnableMap.put(taskMethodRunnable.getKey() , taskMethodRunnable);
+        this.runnableMap.put(key , runnable);
     }
 
     public void destroy() throws Exception {
@@ -85,7 +81,7 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
         this.runnableMap.clear();
     }
 
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         scheduleTasks();
         createConnectionStateListener();
     }
@@ -93,13 +89,12 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
     private void scheduleTasks() {
         if (this.cronExpressTasks != null && this.cronExpressTasks.size() > 0) {
             for (CronExpressTask cronExpressTask : this.cronExpressTasks) {
-                cronExpressTask.setApplication(this.application);
-                cronExpressTask.setOwner(this.owner);
+                cronExpressTask = cronExpressTask.setApplication(this.application).setOwner(this.owner);
                 String rootPath = "/" + ZookeeperConstants.ZK_NAMESPACE + "/";
                 String applicationPath = this.createAndCheckedPath(rootPath + cronExpressTask.getApplication() , CreateMode.PERSISTENT);
-                String jobKeyPath = this.createAndCheckedPath(applicationPath + "/" + cronExpressTask.getKey(), cronExpressTask , CreateMode.PERSISTENT);
-                final String executorPath = this.createAndCheckedPath(jobKeyPath + "/" + cronExpressTask.getIp(), CreateMode.EPHEMERAL);
-                createNotify(executorPath);
+                String jobKeyPath = this.createAndCheckedPath(applicationPath + "/" + cronExpressTask.getKey() ,  CreateMode.PERSISTENT);
+                this.createAndCheckedPath(jobKeyPath + "/" + cronExpressTask.getIp() , cronExpressTask , CreateMode.EPHEMERAL);
+                createNotify(jobKeyPath);
             }
         }
     }
@@ -164,13 +159,13 @@ public class TaskRegistrar implements InitializingBean , DisposableBean {
             if (stat == null) {
                 ACLBackgroundPathAndBytesable<String> stringACLBackgroundPathAndBytesable = this.curatorFramework.create().withMode(createMode);
                 if (cronExpressTask == null) {
-                    resultStr = stringACLBackgroundPathAndBytesable.forPath(application);
+                    resultStr = stringACLBackgroundPathAndBytesable.forPath(path);
                 } else {
                     resultStr = stringACLBackgroundPathAndBytesable.forPath(path, this.zookeeperSerializer.serializer(cronExpressTask));
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("create path failed" , e);
+            throw new RuntimeException(String.format("create path failed , path : %s" , path) , e);
         }
         return resultStr;
     }

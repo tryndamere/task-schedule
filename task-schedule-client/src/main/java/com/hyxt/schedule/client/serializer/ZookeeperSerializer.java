@@ -1,4 +1,4 @@
-package com.link.schedule.client.serializer;
+package com.hyxt.schedule.client.serializer;
 
 /**
  * Created by rocky on 15/10/17.

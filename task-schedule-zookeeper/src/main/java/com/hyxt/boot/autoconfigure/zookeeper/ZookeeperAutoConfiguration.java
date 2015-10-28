@@ -4,6 +4,7 @@ import com.hyxt.boot.autoconfigure.ZookeeperConstants;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.BoundedExponentialBackoffRetry;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class ZookeeperAutoConfiguration {
                 zookeeperProperties.getMaxSleepTimeMs(), zookeeperProperties.getMaxRetryCount());
 
         CuratorFramework curatorFramework = CuratorFrameworkFactory.builder().connectString(zookeeperProperties.getConnectionString())
-                .namespace(ZookeeperConstants.ZK_NAMESPACE)
+//                .namespace(ZookeeperConstants.ZK_NAMESPACE)
                 .sessionTimeoutMs(zookeeperProperties.getSessionTimeoutMs())
                 .connectionTimeoutMs(zookeeperProperties.getConnectionTimeoutMs())
                 .retryPolicy(boundedExponentialBackoffRetry)
@@ -55,7 +56,7 @@ public class ZookeeperAutoConfiguration {
         try {
             Stat stat = curatorFramework.checkExists().forPath(rootPath);
             if (stat == null) {
-                curatorFramework.create().forPath(rootPath);
+                curatorFramework.create().withMode(CreateMode.PERSISTENT).forPath(rootPath);
             }
         } catch (Exception e) {
             throw new RuntimeException("root init failed", e);

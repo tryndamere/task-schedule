@@ -1,4 +1,4 @@
-package com.link.schedule.client.annotation;
+package com.hyxt.schedule.client.annotation;
 
 import java.lang.annotation.*;
 

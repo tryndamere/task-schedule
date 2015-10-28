@@ -1,4 +1,4 @@
-package com.link.schedule.client.serializer;
+package com.hyxt.schedule.client.serializer;
 
 import org.springframework.core.NestedRuntimeException;
 

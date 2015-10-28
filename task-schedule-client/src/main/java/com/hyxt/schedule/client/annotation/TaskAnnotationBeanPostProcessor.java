@@ -1,6 +1,9 @@
-package com.link.schedule.client.annotation;
+package com.hyxt.schedule.client.annotation;
 
-import com.link.schedule.client.config.TaskRegistrar;
+import com.hyxt.schedule.client.config.TaskRegistrar;
+import com.hyxt.schedule.client.serializer.ZookeeperSerializer;
+import com.hyxt.schedule.client.support.TaskMethodRunnable;
+import com.hyxt.schedule.client.config.CronExpressTask;
 import org.apache.curator.framework.CuratorFramework;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
@@ -13,6 +16,7 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
 import org.slf4j.Logger;
@@ -20,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -48,6 +53,12 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
     private CuratorFramework curatorFramework;
 
     private Environment environment;
+
+    private ZookeeperSerializer zookeeperSerializer;
+
+    public void setZookeeperSerializer(ZookeeperSerializer zookeeperSerializer) {
+        this.zookeeperSerializer = zookeeperSerializer;
+    }
 
     public void setCuratorFramework(CuratorFramework curatorFramework) {
         this.curatorFramework = curatorFramework;
@@ -84,15 +95,57 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
                         if (annotation instanceof TaskDefinitionAndHandler) {
                             TaskDefinitionAndHandler taskDefinitionAndHandler = (TaskDefinitionAndHandler)annotation;
                             processTask(taskDefinitionAndHandler , method , bean);
+                            annotatedMethods.add(method);
                         }
                     }
                 }
             });
+            if (annotatedMethods.isEmpty()) {
+                this.nonAnnotatedClasses.add(targetClass);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("No @TaskDefinitionAndHandler annotations found on bean class: " + bean.getClass());
+                }
+            }
         }
-        return null;
+        return bean;
     }
 
     private void processTask(TaskDefinitionAndHandler taskDefinitionAndHandler , Method method , Object bean) {
+        Assert.isTrue(void.class.equals(method.getReturnType()) ,
+                "Only void-returning methods may be annotated with @TaskDefinitionAndHandler");
+        Assert.isTrue(method.getParameterTypes().length == 0 ,
+                "Only no-arg methods may be annotated with @TaskDefinitionAndHandler");
+
+        if (AopUtils.isJdkDynamicProxy(bean)) {
+            try {
+                method = bean.getClass().getMethod(method.getName() , method.getParameterTypes());
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+        } else if (AopUtils.isCglibProxy(bean)) {
+            if (Modifier.isPrivate(method.getModifiers())) {
+                throw new IllegalStateException(String.format(
+                        "@TaskDefinitionAndHandler method '%s' found on CGLIB proxy for target class '%s' but cannot " +
+                                "be delegated to target bean. Switch its visibility to package or protected.",
+                        method.getName(), method.getDeclaringClass().getSimpleName()));
+            }
+        }
+
+        CronExpressTask cronExpressTask = initCronExpressTask(taskDefinitionAndHandler, method);
+        this.taskRegistrar.addCronExpressTask(cronExpressTask);
+
+        Runnable runnable = new TaskMethodRunnable(bean, method);
+        this.taskRegistrar.addTaskRunnable(runnable , cronExpressTask.getKey());
+
+    }
+
+    private CronExpressTask initCronExpressTask(TaskDefinitionAndHandler taskDefinitionAndHandler , Method method) {
+        if (StringUtils.isEmpty(taskDefinitionAndHandler.key()) ||
+                StringUtils.isEmpty(taskDefinitionAndHandler.cronExpress())) {
+            throw new IllegalStateException(String.format("cronExpress or key is null , method : %s" , method.getName()));
+        }
+        return new CronExpressTask(taskDefinitionAndHandler.cronExpress() ,
+                taskDefinitionAndHandler.desc() , taskDefinitionAndHandler.key() , taskDefinitionAndHandler.isConcurrent());
 
     }
 
@@ -122,7 +175,11 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
 
         if (this.environment != null) {
             this.taskRegistrar.setApplication(environment.getProperty("schedule.project.application"));
-            this.taskRegistrar.setApplication(environment.getProperty("schedule.project.owner"));
+            this.taskRegistrar.setOwner(environment.getProperty("schedule.project.owner"));
+        }
+
+        if (this.zookeeperSerializer != null) {
+            this.taskRegistrar.setZookeeperSerializer(this.zookeeperSerializer);
         }
 
         if (this.taskRegistrar.getCuratorFramework() == null) {
@@ -133,6 +190,8 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
                 throw new IllegalStateException("More than one CuratorFramework exists within the context.");
             }
         }
+
+        this.taskRegistrar.afterPropertiesSet();
     }
 
     public void setEnvironment(Environment environment) {

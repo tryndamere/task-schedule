@@ -1,6 +1,6 @@
-package com.link.schedule.client.config;
+package com.hyxt.schedule.client.config;
 
-import com.link.schedule.client.util.NetUtils;
+import com.hyxt.schedule.client.util.NetUtils;
 
 /**
  * Created by rocky on 2015/10/19.

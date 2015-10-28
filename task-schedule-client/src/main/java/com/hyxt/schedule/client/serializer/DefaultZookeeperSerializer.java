@@ -1,4 +1,4 @@
-package com.link.schedule.client.serializer;
+package com.hyxt.schedule.client.serializer;
 
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
@@ -30,6 +30,7 @@ public class DefaultZookeeperSerializer implements ZookeeperSerializer {
         final StringBuilder stringBuilder = new StringBuilder(20);
         ReflectionUtils.doWithFields(t.getClass(), new ReflectionUtils.FieldCallback() {
             public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
+                ReflectionUtils.makeAccessible(field);
                 Object fieldValue = field.get(t);
                 if (fieldValue != null) {
                     stringBuilder.append(field.getName()).append("=").append(fieldValue).append("&");
@@ -92,10 +93,13 @@ public class DefaultZookeeperSerializer implements ZookeeperSerializer {
 
     private boolean isSerializer(Field field) {
         Class<?> type = field.getType();
-        boolean isNeedSerializer = type == String.class && type == Integer.class
-                && type == Long.class && type == Short.class
-                && type == Float.class && type == Double.class
-                && type == Boolean.class ;
+        boolean isNeedSerializer = false;
+        if ( type == String.class || type == Integer.class
+                || type == Long.class || type == Short.class
+                || type == Float.class || type == Double.class
+                || type == Boolean.class) {
+            isNeedSerializer = true;
+        }
         int modifiers = field.getModifiers();
         return !Modifier.isStatic(modifiers) && !Modifier.isTransient(modifiers)
                 && !Modifier.isFinal(modifiers) && isNeedSerializer;

@@ -1,4 +1,4 @@
-package com.link.schedule.client.support;
+package com.hyxt.schedule.client.support;
 
 import org.springframework.util.ReflectionUtils;
 
@@ -15,12 +15,9 @@ public class TaskMethodRunnable implements Runnable {
 
     private Method method;
 
-    private String key;
-
-    public TaskMethodRunnable(Object target, Method method , String key) {
+    public TaskMethodRunnable(Object target, Method method) {
         this.target = target;
         this.method = method;
-        this.key    = key;
     }
 
     public Object getTarget() {
@@ -31,14 +28,10 @@ public class TaskMethodRunnable implements Runnable {
         return method;
     }
 
-    public String getKey() {
-        return key;
-    }
-
     public void run() {
         try {
             ReflectionUtils.makeAccessible(this.method);
-            this.method.invoke(this.target , this.key);
+            this.method.invoke(this.target);
         } catch (IllegalAccessException ex) {
             throw new UndeclaredThrowableException(ex);
         } catch (InvocationTargetException ex) {
