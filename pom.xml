@@ -13,6 +13,7 @@
         <module>task-schedule-client</module>
         <module>task-schedule-web</module>
         <module>task-schedule-test</module>
+        <module>task-schedule-provider</module>
     </modules>
 
     <parent>

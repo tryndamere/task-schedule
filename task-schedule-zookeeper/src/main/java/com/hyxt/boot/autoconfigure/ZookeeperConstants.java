@@ -5,6 +5,8 @@ package com.hyxt.boot.autoconfigure;
  */
 public class ZookeeperConstants {
 
-    public static final String ZK_NAMESPACE = "HY_SCHEDULE" ;
+    public static final String ZK_SCHEDULE_ROOT = "/HY_SCHEDULE" ;
+
+    public static final String ZK_SCHEDULE_JOB = ZK_SCHEDULE_ROOT + "/JOB";
 
 }

@@ -34,7 +34,7 @@ public class ZookeeperAutoConfiguration {
                 zookeeperProperties.getMaxSleepTimeMs(), zookeeperProperties.getMaxRetryCount());
 
         CuratorFramework curatorFramework = CuratorFrameworkFactory.builder().connectString(zookeeperProperties.getConnectionString())
-//                .namespace(ZookeeperConstants.ZK_NAMESPACE)
+//                .namespace(ZookeeperConstants.ZK_SCHEDULE_ROOT)
                 .sessionTimeoutMs(zookeeperProperties.getSessionTimeoutMs())
                 .connectionTimeoutMs(zookeeperProperties.getConnectionTimeoutMs())
                 .retryPolicy(boundedExponentialBackoffRetry)
@@ -52,11 +52,10 @@ public class ZookeeperAutoConfiguration {
     }
 
     private void initRoot(CuratorFramework curatorFramework) throws RuntimeException {
-        String rootPath = "/" + ZookeeperConstants.ZK_NAMESPACE;
         try {
-            Stat stat = curatorFramework.checkExists().forPath(rootPath);
+            Stat stat = curatorFramework.checkExists().forPath(ZookeeperConstants.ZK_SCHEDULE_ROOT);
             if (stat == null) {
-                curatorFramework.create().withMode(CreateMode.PERSISTENT).forPath(rootPath);
+                curatorFramework.create().withMode(CreateMode.PERSISTENT).forPath(ZookeeperConstants.ZK_SCHEDULE_ROOT);
             }
         } catch (Exception e) {
             throw new RuntimeException("root init failed", e);
