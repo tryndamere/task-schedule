@@ -1,6 +1,8 @@
 package com.hyxt.boot.autoconfigure.zookeeper;
 
 import com.hyxt.boot.autoconfigure.ZookeeperConstants;
+import com.hyxt.boot.autoconfigure.ZookeeperOperation;
+import com.hyxt.boot.autoconfigure.ZookeeperOperationImpl;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.BoundedExponentialBackoffRetry;
@@ -24,7 +26,7 @@ public class ZookeeperAutoConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperAutoConfiguration.class);
 
-    @Bean
+    @Bean(name = "curatorFramework")
     @ConditionalOnClass({CuratorFramework.class, CuratorFrameworkFactory.class})
     public CuratorFramework createCuratorFramework(ZookeeperProperties zookeeperProperties) throws InterruptedException {
         LOGGER.info("curator init paramters , connectString : {} , connectionTimeout : {} , sessionTimeout : {}", zookeeperProperties.getConnectionString()
@@ -60,7 +62,11 @@ public class ZookeeperAutoConfiguration {
         } catch (Exception e) {
             throw new RuntimeException("root init failed", e);
         }
+    }
 
+    @Bean
+    public ZookeeperOperation createZookeeperOperation(CuratorFramework curatorFramework) {
+        return new ZookeeperOperationImpl(curatorFramework);
     }
 
 

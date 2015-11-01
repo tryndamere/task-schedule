@@ -1,4 +1,4 @@
-package com.hyxt.schedule.client.serializer;
+package com.hyxt.boot.autoconfigure.serializer;
 
 import org.springframework.core.NestedRuntimeException;
 

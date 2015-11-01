@@ -1,4 +1,4 @@
-package com.hyxt.schedule.client.serializer;
+package com.hyxt.boot.autoconfigure.serializer;
 
 /**
  * Created by rocky on 15/10/17.
