@@ -1,5 +1,8 @@
 package com.hyxt.schedule.provider;
 
+import com.hyxt.boot.autoconfigure.ZookeeperOperation;
+import com.hyxt.boot.autoconfigure.serializer.DefaultZookeeperSerializer;
+import com.hyxt.schedule.provider.leader.ScheduleLeader;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
@@ -22,6 +25,15 @@ public class Application {
     public Scheduler getSchedulerFactory() throws SchedulerException {
         SchedulerFactory schedulerFactory = new StdSchedulerFactory();
         return schedulerFactory.getScheduler();
+    }
+
+    @Bean
+    public ScheduleLeader getScheduleLeader(Scheduler scheduler , ZookeeperOperation zookeeperOperation) {
+        ScheduleLeader scheduleLeader = new ScheduleLeader();
+        scheduleLeader.setScheduler(scheduler);
+        scheduleLeader.setZookeeperOperation(zookeeperOperation);
+        scheduleLeader.setZookeeperSerializer(new DefaultZookeeperSerializer());
+        return scheduleLeader;
     }
 
     public static void main(String[] args) {
