@@ -3,7 +3,7 @@ package com.hyxt.schedule.provider.leader;
 import com.hyxt.boot.autoconfigure.ZookeeperConstants;
 import com.hyxt.boot.autoconfigure.ZookeeperOperation;
 import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
-import com.hyxt.schedule.provider.config.CronExpressTask;
+import com.hyxt.schedule.common.config.CronExpressTask;
 import com.hyxt.schedule.provider.job.JobUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;

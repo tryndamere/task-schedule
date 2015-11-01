@@ -2,7 +2,7 @@ package com.hyxt.schedule.client.annotation;
 
 import com.hyxt.boot.autoconfigure.ZookeeperOperation;
 import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
-import com.hyxt.schedule.client.config.CronExpressTask;
+import com.hyxt.schedule.common.config.CronExpressTask;
 import com.hyxt.schedule.client.config.TaskRegistrar;
 import com.hyxt.schedule.client.support.TaskMethodRunnable;
 import org.slf4j.Logger;

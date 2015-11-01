@@ -3,6 +3,8 @@ package com.hyxt.schedule.client.config;
 import com.hyxt.boot.autoconfigure.ZookeeperConstants;
 import com.hyxt.boot.autoconfigure.ZookeeperOperation;
 import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
+import com.hyxt.schedule.common.config.CronExpressTask;
+import com.hyxt.schedule.common.config.TaskExecutorStateEnum;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;

@@ -1,4 +1,6 @@
-package com.hyxt.schedule.provider.config;
+package com.hyxt.schedule.common.config;
+
+import com.hyxt.schedule.common.util.NetUtils;
 
 /**
  * Created by rocky on 2015/10/19.
@@ -88,6 +90,9 @@ public class CronExpressTask {
     }
 
     public String getIp() {
+        if (ip == null) {
+            this.ip = NetUtils.getLocalAddress().getHostAddress();
+        }
         return ip;
     }
 
