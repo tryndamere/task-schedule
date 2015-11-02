@@ -1,10 +1,12 @@
 package com.hyxt.schedule.client.annotation;
 
+import com.hyxt.boot.autoconfigure.ZookeeperOperation;
+import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
+import com.hyxt.schedule.common.config.CronExpressTask;
 import com.hyxt.schedule.client.config.TaskRegistrar;
-import com.hyxt.schedule.client.serializer.ZookeeperSerializer;
 import com.hyxt.schedule.client.support.TaskMethodRunnable;
-import com.hyxt.schedule.client.config.CronExpressTask;
-import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.*;
@@ -18,9 +20,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -50,7 +49,7 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
 
     private TaskRegistrar taskRegistrar = new TaskRegistrar();
 
-    private CuratorFramework curatorFramework;
+    private ZookeeperOperation zookeeperOperation;
 
     private Environment environment;
 
@@ -60,8 +59,8 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
         this.zookeeperSerializer = zookeeperSerializer;
     }
 
-    public void setCuratorFramework(CuratorFramework curatorFramework) {
-        this.curatorFramework = curatorFramework;
+    public void setZookeeperOperation(ZookeeperOperation zookeeperOperation) {
+        this.zookeeperOperation= zookeeperOperation;
     }
 
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -169,8 +168,8 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
     }
 
     private void finishRegistration() {
-        if (this.curatorFramework != null) {
-            this.taskRegistrar.setCuratorFramework(this.curatorFramework);
+        if (this.zookeeperOperation != null) {
+            this.taskRegistrar.setZookeeperOperation(this.zookeeperOperation);
         }
 
         if (this.environment != null) {
@@ -182,10 +181,10 @@ public class TaskAnnotationBeanPostProcessor implements EnvironmentAware , BeanP
             this.taskRegistrar.setZookeeperSerializer(this.zookeeperSerializer);
         }
 
-        if (this.taskRegistrar.getCuratorFramework() == null) {
+        if (this.taskRegistrar.getZookeeperOperation() == null) {
             Assert.state(this.beanFactory != null , "BeanFactory must be set to find task scheduler by type");
             try {
-                this.taskRegistrar.setCuratorFramework(this.beanFactory.getBean(CuratorFramework.class));
+                this.taskRegistrar.setZookeeperOperation(this.beanFactory.getBean(ZookeeperOperation.class));
             } catch (NoUniqueBeanDefinitionException ex) {
                 throw new IllegalStateException("More than one CuratorFramework exists within the context.");
             }

@@ -14,6 +14,7 @@
         <module>task-schedule-web</module>
         <module>task-schedule-test</module>
         <module>task-schedule-provider</module>
+        <module>task-schedule-common</module>
     </modules>
 
     <parent>

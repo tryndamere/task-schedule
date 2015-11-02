@@ -1,6 +1,6 @@
 package com.hyxt.schedule.client.annotation;
 
-import com.hyxt.schedule.client.serializer.DefaultZookeeperSerializer;
+import com.hyxt.boot.autoconfigure.serializer.DefaultZookeeperSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

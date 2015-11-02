@@ -1,6 +1,6 @@
-package com.hyxt.schedule.client.config;
+package com.hyxt.schedule.common.config;
 
-import com.hyxt.schedule.client.util.NetUtils;
+import com.hyxt.schedule.common.util.NetUtils;
 
 /**
  * Created by rocky on 2015/10/19.

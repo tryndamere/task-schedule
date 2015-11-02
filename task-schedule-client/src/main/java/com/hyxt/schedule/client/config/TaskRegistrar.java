@@ -1,19 +1,21 @@
 package com.hyxt.schedule.client.config;
 
 import com.hyxt.boot.autoconfigure.ZookeeperConstants;
-import com.hyxt.schedule.client.serializer.ZookeeperSerializer;
+import com.hyxt.boot.autoconfigure.ZookeeperOperation;
+import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
+import com.hyxt.schedule.common.config.CronExpressTask;
+import com.hyxt.schedule.common.config.TaskExecutorStateEnum;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.*;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
 
     private List<CronExpressTask> cronExpressTasks;
 
-    private CuratorFramework curatorFramework;
+    private ZookeeperOperation zookeeperOperation;
 
     private ZookeeperSerializer zookeeperSerializer;
 
@@ -54,12 +56,12 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
         this.zookeeperSerializer = zookeeperSerializer;
     }
 
-    public void setCuratorFramework(CuratorFramework curatorFramework) {
-        this.curatorFramework = curatorFramework;
+    public void setZookeeperOperation(ZookeeperOperation zookeeperOperation) {
+        this.zookeeperOperation = zookeeperOperation;
     }
 
-    public CuratorFramework getCuratorFramework() {
-        return curatorFramework;
+    public ZookeeperOperation getZookeeperOperation() {
+        return zookeeperOperation;
     }
 
     public void addCronExpressTask(CronExpressTask cronExpressTask) {
@@ -77,7 +79,7 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
     }
 
     public void destroy() throws Exception {
-        this.curatorFramework.close();
+        this.zookeeperOperation.close();
         this.runnableMap.clear();
     }
 
@@ -90,18 +92,27 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
         if (this.cronExpressTasks != null && this.cronExpressTasks.size() > 0) {
             for (CronExpressTask cronExpressTask : this.cronExpressTasks) {
                 cronExpressTask = cronExpressTask.setApplication(this.application).setOwner(this.owner);
-                String applicationPath = this.createAndCheckedPath(ZookeeperConstants.ZK_SCHEDULE_JOB + "/" +
-                        cronExpressTask.getApplication(), CreateMode.PERSISTENT);
-                String jobKeyPath = this.createAndCheckedPath(applicationPath + "/" + cronExpressTask.getKey(),
-                        cronExpressTask, CreateMode.PERSISTENT);
-                String executePath = this.createAndCheckedPath(jobKeyPath + "/" + cronExpressTask.getIp(), CreateMode.EPHEMERAL);
+                String applicationPath = this.zookeeperOperation.createPersistentWithValidator(
+                        this.spellPath(ZookeeperConstants.ZK_SCHEDULE_JOB , cronExpressTask.getApplication()));
+                String jobKeyPath = this.zookeeperOperation.createPersistent(this.spellPath(applicationPath , cronExpressTask.getKey()) ,
+                        this.zookeeperSerializer.serializer(cronExpressTask));
+                String executePath = this.zookeeperOperation.createEphemeral(this.spellPath(jobKeyPath, cronExpressTask.getIp()));
                 createNotify(executePath);
             }
         }
     }
 
+    private String spellPath(String ...paths) {
+        Assert.notNull(paths, "paths must be not null");
+        StringBuffer sb = new StringBuffer(20);
+        for (String path : paths) {
+            sb.append(path).append("/");
+        }
+        return sb.deleteCharAt(sb.length()-1).toString();
+    }
+
     private void createConnectionStateListener() {
-        this.curatorFramework.getConnectionStateListenable().addListener(new ConnectionStateListener() {
+        this.zookeeperOperation.getCuratorFramework().getConnectionStateListenable().addListener(new ConnectionStateListener() {
             public void stateChanged(CuratorFramework client, ConnectionState newState) {
                 if (newState == ConnectionState.SUSPENDED || newState == ConnectionState.LOST) {
                     destroyNodeCaches();
@@ -112,17 +123,26 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
     }
 
     private void createNotify(final String executorPath) {
-        final NodeCache nodeCache = new NodeCache(this.curatorFramework, executorPath);
+        final NodeCache nodeCache = new NodeCache(this.zookeeperOperation.getCuratorFramework(), executorPath);
         try {
             nodeCache.getListenable().addListener(new NodeCacheListener() {
                 public void nodeChanged() throws Exception {
-                    String[] allPath = executorPath.split("\\/");
-                    String key = allPath[allPath.length - 2];
-                    String deserializer = nodeCache.getCurrentData().getData() == null ? "" : zookeeperSerializer.deserializer(nodeCache.getCurrentData().getData());
+                    CronExpressTask cronExpressTask = TaskRegistrar.this.zookeeperSerializer.deserializer(TaskRegistrar.this.zookeeperOperation
+                            .getParentData(executorPath), CronExpressTask.class);
+                    String deserializer = nodeCache.getCurrentData().getData() == null ? "" :
+                            TaskRegistrar.this.zookeeperSerializer.deserializer(nodeCache.getCurrentData().getData());
                     LOGGER.info("notify client , data : {}", deserializer);
+                    InterProcessMutex interProcessMutex = !cronExpressTask.isConcurrent()?
+                            new InterProcessMutex(TaskRegistrar.this.zookeeperOperation.getCuratorFramework() , "") : null;
+                    if (interProcessMutex != null) {
+                        interProcessMutex.acquire();
+                    }
                     if (deserializer.equals(TaskExecutorStateEnum.DOING)) {
                         LOGGER.info("notify client , executor : {}", deserializer);
-                        runnableMap.get(key).run();
+                        runnableMap.get(cronExpressTask.getKey()).run();
+                    }
+                    if (interProcessMutex != null) {
+                        interProcessMutex.release();
                     }
                     LOGGER.info("client execute finished");
                 }
@@ -133,7 +153,7 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
             }
             this.nodeCaches.add(nodeCache);
         } catch (Exception e) {
-            throw new RuntimeException("node create erorr!");
+            throw new RuntimeException("nodeCache create error!" , e);
         }
     }
 
@@ -143,35 +163,10 @@ public class TaskRegistrar implements InitializingBean, DisposableBean {
                 try {
                     nodeCache.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException("destroy nodeCaches error!" , e);
                 }
             }
         }
     }
 
-    private String createAndCheckedPath(String path, CreateMode createMode) {
-        return createAndCheckedPath(path, null, createMode);
-    }
-
-    private String createAndCheckedPath(String path, CronExpressTask cronExpressTask, CreateMode createMode) {
-        String resultStr = path;
-        try {
-            Stat stat = this.curatorFramework.checkExists().forPath(path);
-            if (stat == null) {
-                ACLBackgroundPathAndBytesable<String> stringACLBackgroundPathAndBytesable = this.curatorFramework.create().withMode(createMode);
-                if (cronExpressTask == null) {
-                    resultStr = stringACLBackgroundPathAndBytesable.forPath(path, null);
-                } else {
-                    resultStr = stringACLBackgroundPathAndBytesable.forPath(path, this.zookeeperSerializer.serializer(cronExpressTask));
-                }
-            } else {
-                if (cronExpressTask != null) {
-                    this.curatorFramework.setData().forPath(path, this.zookeeperSerializer.serializer(cronExpressTask));
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(String.format("create path failed , path : %s", path), e);
-        }
-        return resultStr;
-    }
 }
