@@ -4,6 +4,7 @@ import com.hyxt.boot.autoconfigure.ZookeeperConstants;
 import com.hyxt.boot.autoconfigure.ZookeeperOperation;
 import com.hyxt.boot.autoconfigure.serializer.ZookeeperSerializer;
 import com.hyxt.schedule.common.config.CronExpressTask;
+import com.hyxt.schedule.common.util.NetUtils;
 import com.hyxt.schedule.provider.job.JobUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -59,28 +61,23 @@ public class ScheduleLeader implements InitializingBean , DisposableBean {
                  new LeaderSelectorListener() {
 
             public void takeLeadership(CuratorFramework curatorFramework) throws Exception {
+                ScheduleLeader.this.zookeeperOperation.setData(ZookeeperConstants.ZK_SCHEDULE_ROOT , NetUtils.getLocalAddress().toString().getBytes(Charset.defaultCharset()));
                 List<String> applications = ScheduleLeader.this.zookeeperOperation.getChildren(ZookeeperConstants.ZK_SCHEDULE_JOB);
                 if (applications != null && applications.size() > 0) {
-                    for (String application : applications) {
+                    for (final String application : applications) {
                         List<String> jobKeys = ScheduleLeader.this.zookeeperOperation.getChildren(application);
                         if (jobKeys != null && jobKeys.size() > 0) {
                             for (final String jobKey : jobKeys) {
                                 if (!createJob(jobKey)) {
-                                    final PathChildrenCache pathChildrenCache = new PathChildrenCache(ScheduleLeader.this.zookeeperOperation.getCuratorFramework() ,
-                                            jobKey , false);
-                                    pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
-                                        public void childEvent(CuratorFramework curatorFramework, PathChildrenCacheEvent pathChildrenCacheEvent) throws Exception {
-                                            createJob(jobKey);
-                                        }
-                                    });
-                                    pathChildrenCache.start(PathChildrenCache.StartMode.NORMAL);
-                                    LOGGER.info("create path listener because that path has not children , jobKey : {} " , jobKey);
+                                    addListener(jobKey);
+                                    LOGGER.info("create path listeners because that path has not children , jobKey : {} " , jobKey);
                                 }
                             }
                             if (ScheduleLeader.this.scheduler.isStarted()) {
                                 ScheduleLeader.this.scheduler.start();
                             }
                         }
+                        addListener(application); //TODO 这个逻辑需要修改
                     }
                 }
                 new CountDownLatch(1).await();
@@ -95,6 +92,17 @@ public class ScheduleLeader implements InitializingBean , DisposableBean {
                     }
                     throw new CancelLeadershipException();
                 }
+            }
+
+            private void addListener(final String path) throws Exception {
+                final PathChildrenCache pathChildrenCache = new PathChildrenCache(ScheduleLeader.this.zookeeperOperation.getCuratorFramework() ,
+                        path , false);
+                pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
+                    public void childEvent(CuratorFramework curatorFramework, PathChildrenCacheEvent pathChildrenCacheEvent) throws Exception {
+                        createJob(path);
+                    }
+                });
+                pathChildrenCache.start(PathChildrenCache.StartMode.NORMAL);
             }
 
             private boolean createJob(String jobKey) throws SchedulerException {
